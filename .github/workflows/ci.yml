@@ -35,12 +35,11 @@ jobs:
 
       - name: Detect changed folders
         id: detect
-        run: |
-          if [ "${{ github.event_name }}" = "pull_request" ]; then
+        run: 
+            if [ "${{ github.event_name }}" = "pull_request" ]; then
             BASE="${{ github.base_ref }}"
-            HEAD="${{ github.head_ref }}"
-            git fetch origin "$BASE"
-            CHANGED_FILES=$(git diff --name-only "origin/$BASE"..."$HEAD")
+            git fetch --no-tags --prune origin "$BASE:refs/remotes/origin/$BASE"
+            CHANGED_FILES=$(git diff --name-only "origin/$BASE...HEAD")
           else
             if [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ]; then
               CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || git ls-files)
