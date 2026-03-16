@@ -199,8 +199,8 @@ def _income_totals(incomes: list[Income], cur_date: Date) -> IncomeStats:
     :rtype: tuple[float, float]
     """
     query_month_year = (cur_date[1], cur_date[2])
-    total_income = 0
-    month_income = 0
+    total_income = float(0)
+    month_income = float(0)
 
     for income in incomes:
         if not check_date(_income_date(income), cur_date):
@@ -241,7 +241,7 @@ def _cost_totals(costs: list[Cost], cur_date: Date) -> CostStats:
     :return: Кортеж формата (суммарный расход, расход за месяц, детализация по категориям)
     :rtype: tuple[float, float, dict[str, float]]
     """
-    month_and_total_cost = [0, 0]
+    month_and_total_cost = [float(0), float(0)]
     categories: dict[str, float] = {}
 
     for cost in costs:
@@ -253,7 +253,7 @@ def _cost_totals(costs: list[Cost], cur_date: Date) -> CostStats:
             continue
         month_and_total_cost[1] += cost[4]
         cat = cost[3]
-        categories.setdefault(cat, 0)
+        categories.setdefault(cat, float(0))
         categories[cat] += cost[4]
 
     return month_and_total_cost[0], month_and_total_cost[1], categories
