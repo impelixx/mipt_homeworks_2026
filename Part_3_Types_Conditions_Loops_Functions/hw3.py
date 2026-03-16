@@ -446,7 +446,7 @@ def handle_stats(parts: list[str], incomes: list[Income], costs: list[Cost]) -> 
 def process_command(parts: list[str], incomes: list[Income], costs: list[Cost]) -> None:
     """
     Раскидывает команды по соответствующим обработчикам.
-    
+
     :param list[str] parts: Части команды
     :param list[Income] incomes: Список доходов
     :param list[Cost] costs: Список расходов
