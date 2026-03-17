@@ -42,7 +42,7 @@ def is_leap_year(year: int) -> bool:
     return by_four and (not by_hundred or by_four_hundred)
 
 
-def _is_valid_date_format(date_string: str) -> bool:
+def is_valid_date_format(date_string: str) -> bool:
     """
     Чекер на правильность формата даты
 
@@ -61,7 +61,7 @@ def _is_valid_date_format(date_string: str) -> bool:
     return lengths == (2, 2, 4)
 
 
-def _days_in_month(month: int, year: int) -> int:
+def days_in_month(month: int, year: int) -> int:
     """
     количество дней в месяце для заданного года
 
@@ -77,7 +77,7 @@ def _days_in_month(month: int, year: int) -> int:
     return 31
 
 
-def _is_real_date(day: int, month: int, year: int) -> bool:
+def is_real_date(day: int, month: int, year: int) -> bool:
     """
     Чекер на существование даты
     :param int day: День
@@ -89,10 +89,10 @@ def _is_real_date(day: int, month: int, year: int) -> bool:
     month_is_valid = 1 <= month <= MONTHS_IN_YEAR
     if not month_is_valid:
         return False
-    return 1 <= day <= _days_in_month(month, year)
+    return 1 <= day <= days_in_month(month, year)
 
 
-def _parse_date_numbers(parts: list[str]) -> Date | None:
+def parse_date_numbers(parts: list[str]) -> Date | None:
     """
     Даты из списка строк
 
@@ -115,20 +115,20 @@ def extract_date(maybe_dt: str) -> tuple[int, int, int] | None:
     :return: typle формата (день, месяц, год) или None, если ошибка
     :rtype: tuple[int, int, int] | None
     """
-    if not _is_valid_date_format(maybe_dt):
+    if not is_valid_date_format(maybe_dt):
         return None
 
     parts = maybe_dt.split("-")
-    parsed_date = _parse_date_numbers(parts)
+    parsed_date = parse_date_numbers(parts)
     if parsed_date is None:
         return None
 
-    if not _is_real_date(parsed_date[0], parsed_date[1], parsed_date[2]):
+    if not is_real_date(parsed_date[0], parsed_date[1], parsed_date[2]):
         return None
     return parsed_date
 
 
-def _is_decimal_number(text: str) -> bool:
+def is_decimal_number(text: str) -> bool:
     """
     Чекер на десятичное число
 
@@ -161,7 +161,7 @@ def parse_price(maybe_amount: str) -> float | None:
     if not normalized or normalized.count(".") > 1:
         return None
 
-    if not _is_decimal_number(normalized):
+    if not is_decimal_number(normalized):
         return None
 
     amount = float(normalized)
@@ -196,7 +196,7 @@ def money_formater(value: float) -> str:
     return formatted.rstrip("0").rstrip(".")
 
 
-def _income_totals(incomes: list[Income], cur_date: Date) -> IncomeStats:
+def income_totals(incomes: list[Income], cur_date: Date) -> IncomeStats:
     """
     находит суммарный доход и доход за месяц для заданной даты
 
@@ -210,7 +210,7 @@ def _income_totals(incomes: list[Income], cur_date: Date) -> IncomeStats:
     month_income = float(0)
 
     for income in incomes:
-        if not check_date(_income_date(income), cur_date):
+        if not check_date(income_date(income), cur_date):
             continue
         amount = income[3]
         total_income += amount
@@ -220,7 +220,7 @@ def _income_totals(incomes: list[Income], cur_date: Date) -> IncomeStats:
     return total_income, month_income
 
 
-def _income_date(income: Income) -> Date:
+def income_date(income: Income) -> Date:
     """
     Возвращает дату из дохода.
 
@@ -231,7 +231,7 @@ def _income_date(income: Income) -> Date:
     return income[0], income[1], income[2]
 
 
-def _cost_date(cost: Cost) -> Date:
+def cost_date(cost: Cost) -> Date:
     """
     хелпер для получения даты из расходов
 
@@ -242,7 +242,7 @@ def _cost_date(cost: Cost) -> Date:
     return cost[0], cost[1], cost[2]
 
 
-def _cost_totals(costs: list[Cost], cur_date: Date) -> CostStats:
+def cost_totals(costs: list[Cost], cur_date: Date) -> CostStats:
     """
     Хелпер для нахождения всего что связано c раходами в сумме
 
@@ -255,7 +255,7 @@ def _cost_totals(costs: list[Cost], cur_date: Date) -> CostStats:
     categories: dict[str, float] = {}
 
     for cost in costs:
-        if not check_date(_cost_date(cost), cur_date):
+        if not check_date(cost_date(cost), cur_date):
             continue
         month_and_total_cost[0] += cost[4]
         current_cost_date = (cost[1], cost[2])
@@ -269,7 +269,7 @@ def _cost_totals(costs: list[Cost], cur_date: Date) -> CostStats:
     return month_and_total_cost[0], month_and_total_cost[1], categories
 
 
-def _compose_stats(income_stats: IncomeStats, cost_stats: CostStats) -> Stats:
+def compose_stats(income_stats: IncomeStats, cost_stats: CostStats) -> Stats:
     """
     Объединяет стату
 
@@ -293,12 +293,12 @@ def collect_stats(incomes: list[Income], costs: list[Cost], cur_date: Date) -> S
     :return: Стата за дату
     :rtype: tuple[float, float, float, float, dict[str, float]]
     """
-    income_stats = _income_totals(incomes, cur_date)
-    cost_stats = _cost_totals(costs, cur_date)
-    return _compose_stats(income_stats, cost_stats)
+    income_stats = income_totals(incomes, cur_date)
+    cost_stats = cost_totals(costs, cur_date)
+    return compose_stats(income_stats, cost_stats)
 
 
-def _profit_line(month_diff: float) -> str:
+def profit_line(month_diff: float) -> str:
     """
     Хелпер для строки c прибылью/убытком
 
@@ -311,7 +311,7 @@ def _profit_line(month_diff: float) -> str:
     return f"B этом месяце убыток составил {abs(month_diff):.2f} рублей"
 
 
-def _build_details_lines(categories: dict[str, float]) -> list[str]:
+def build_details_lines(categories: dict[str, float]) -> list[str]:
     """
     Хелпер для детализации по категориям в статистике
 
@@ -326,7 +326,7 @@ def _build_details_lines(categories: dict[str, float]) -> list[str]:
     return lines
 
 
-def _stats_header(date_text: str, stats: Stats) -> list[str]:
+def stats_header(date_text: str, stats: Stats) -> list[str]:
     """
     Хелпер для заголовка в статистике
 
@@ -339,7 +339,7 @@ def _stats_header(date_text: str, stats: Stats) -> list[str]:
     return [
         f"Ваша статистика по состоянию на {date_text}:",
         f"Суммарный капитал: {total_capital:.2f} рублей",
-        _profit_line(month_diff),
+        profit_line(month_diff),
         f"Доходы: {stats[2]:.2f} рублей",
         f"Расходы: {stats[3]:.2f} рублей",
     ]
@@ -362,8 +362,8 @@ def build_stats_output(
     :rtype: list[str]
     """
     stats = collect_stats(incomes, costs, cur_date)
-    lines = _stats_header(parts[1], stats)
-    lines.extend(_build_details_lines(stats[4]))
+    lines = stats_header(parts[1], stats)
+    lines.extend(build_details_lines(stats[4]))
     return lines
 
 
