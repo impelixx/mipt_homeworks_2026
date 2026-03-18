@@ -1,17 +1,36 @@
 #!/usr/bin/env python
+# ruff: noqa: RUF001
+
+# ruff: noqa: RUF100
+# flake8: noqa: WPS407
+# it the most easiest way to fix warning, more see here https://github.com/wemake-services/wemake-python-styleguide/issues/1624
 
 UNKNOWN_COMMAND_MSG = "Unknown command!"
 NONPOSITIVE_VALUE_MSG = "Value must be grater than zero!"
 INCORRECT_DATE_MSG = "Invalid date!"
 OP_SUCCESS_MSG = "Added"
+NOT_EXISTS_CATEGORY = "Category not exists!"
 
 CMD_INCOME = "income"
 CMD_COST = "cost"
 CMD_STATS = "stats"
+EXPENSE_CATEGORIES: dict[str, tuple[str, ...]] = {
+    "Food": ("Supermarket", "Restaurants", "FastFood", "Coffee", "Delivery"),
+    "Transport": ("Taxi", "Public transport", "Gas", "Car service"),
+    "Housing": ("Rent", "Utilities", "Repairs", "Furniture"),
+    "Health": ("Pharmacy", "Doctors", "Dentist", "Lab tests"),
+    "Entertainment": ("Movies", "Concerts", "Games", "Subscriptions"),
+    "Clothing": ("Outerwear", "Casual", "Shoes", "Accessories"),
+    "Education": ("Courses", "Books", "Tutors"),
+    "Communications": ("Mobile", "Internet", "Subscriptions"),
+}
+
+financial_transactions_storage: list[dict[str, int | float | str | tuple[int, int, int]]] = []
 
 DATE_LEN = 10
 MONTHS_IN_YEAR = 12
 FEBRUARY = 2
+two = 2
 INCOME_ARGS = 3
 MAX_LEN_OF_SPLIT_LINE = 3
 COST_ARGS = 4
@@ -52,11 +71,11 @@ def is_valid_date_format(date_string: str) -> bool:
     """
     if len(date_string) != DATE_LEN:
         return False
-    split_by_dash = date_string.split("-")
-    if len(split_by_dash) != MAX_LEN_OF_SPLIT_LINE:
+    splited = date_string.split("-")
+    if len(splited) != MAX_LEN_OF_SPLIT_LINE:
         return False
 
-    first, second, third = split_by_dash
+    first, second, third = splited
     lengths = (len(first), len(second), len(third))
     return lengths == (2, 2, 4)
 
@@ -80,6 +99,7 @@ def days_in_month(month: int, year: int) -> int:
 def is_real_date(day: int, month: int, year: int) -> bool:
     """
     Чекер на существование даты
+
     :param int day: День
     :param int month: Месяц
     :param int year: Год
@@ -367,6 +387,33 @@ def build_stats_output(
     return lines
 
 
+def income_handler(amount: float, income_date: str) -> str:
+    """
+    Обработчик для добавления дохода
+
+    :param float amount: Сумма дохода
+    :param str income_date: Дата дохода в формате DD-MM-YYYY
+    :return: Сообщение o результате операции
+    :rtype: str
+    """
+    if amount <= 0:
+        financial_transactions_storage.append({})
+        return NONPOSITIVE_VALUE_MSG
+
+    date_tuple = extract_date(income_date)
+    if date_tuple is None:
+        financial_transactions_storage.append({})
+        return INCORRECT_DATE_MSG
+
+    financial_transactions_storage.append(
+        {
+            "amount": amount,
+            "date": date_tuple,
+        }
+    )
+    return OP_SUCCESS_MSG
+
+
 def handle_income(parts: list[str], incomes: list[Income]) -> None:
     """
     Хендлит income
@@ -391,6 +438,58 @@ def handle_income(parts: list[str], incomes: list[Income]) -> None:
     day, month, year = date_tuple
     incomes.append((day, month, year, amount))
     print(OP_SUCCESS_MSG)
+
+
+def cost_handler(category_name: str, amount: float, income_date: str) -> str:
+    """
+    Обработчик для добавления расхода
+
+    :param str category_name: Категория расхода в формате "Category::Subcategory"
+    :param float amount: Сумма расхода
+    :param str income_date: Дата расхода в формате DD-MM-YYYY
+    :return: Сообщение o результате операции
+    :rtype: str
+    """
+    if amount <= 0:
+        financial_transactions_storage.append({})
+        return NONPOSITIVE_VALUE_MSG
+
+    parts = category_name.split("::")
+    if len(parts) != two:
+        financial_transactions_storage.append({})
+        return NOT_EXISTS_CATEGORY
+
+    common_cat, specific_cat = parts
+    if common_cat not in EXPENSE_CATEGORIES or specific_cat not in EXPENSE_CATEGORIES[common_cat]:
+        financial_transactions_storage.append({})
+        return NOT_EXISTS_CATEGORY
+
+    parsed_date = extract_date(income_date)
+    if parsed_date is None:
+        financial_transactions_storage.append({})
+        return INCORRECT_DATE_MSG
+
+    financial_transactions_storage.append(
+        {
+            "category": category_name,
+            "amount": amount,
+            "date": parsed_date,
+        }
+    )
+    return OP_SUCCESS_MSG
+
+
+def cost_categories_handler() -> str:
+    """
+    Возвращает информацию o доступных категориях расходов
+
+    :return: Отформатированная строка c категориями
+    :rtype: str
+    """
+    lines: list[str] = []
+    for category, subcats in EXPENSE_CATEGORIES.items():
+        lines.extend(f"{category}::{subcat}" for subcat in subcats)
+    return "\n".join(lines)
 
 
 def handle_cost(parts: list[str], costs: list[Cost]) -> None:
