@@ -169,7 +169,7 @@ wheels = [
 [[package]]
 name = "mipt-homeworks-2026"
 version = "0.1.0"
-source = { virtual = "." }
+source = { editable = "." }
 
 [package.dev-dependencies]
 lint = [

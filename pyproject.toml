@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "mipt-homeworks-2026"
 version = "0.1.0"
@@ -11,6 +15,10 @@ target-version = "py313"
 line-length = 120
 extend-exclude = ["*.ipynb"]
 
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["Part_*"]
+
 [tool.ruff.lint]
 select = ["ALL"]
 ignore = [
@@ -23,6 +31,7 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "Part_3_Types_Conditions_Loops_Functions/*" = ["T201"]
+"Part_3_Types_Conditions_Loops_Functions/tests/*" = ["ALL"]
 
 [tool.mypy]
 python_version = "3.13"
