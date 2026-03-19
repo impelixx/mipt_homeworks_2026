@@ -30,7 +30,7 @@ python_version = "3.13"
 strict = true
 warn_return_any = true
 warn_unused_ignores = true
-exclude = [".*\\.ipynb", ".*/tests/.*"]
+exclude = [".*\\.ipynb"]
 
 [tool.ty.src]
 include = ["**/*.py"]
