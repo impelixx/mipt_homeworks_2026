@@ -1,9 +1,4 @@
 #!/usr/bin/env python
-# ruff: noqa: RUF001
-
-# ruff: noqa: RUF100
-# flake8: noqa: WPS407
-# idk hot to fix normal, it the most easiest way to fix warning, more see here https://github.com/wemake-services/wemake-python-styleguide/issues/1624
 
 UNKNOWN_COMMAND_MSG = "Unknown command!"
 NONPOSITIVE_VALUE_MSG = "Value must be grater than zero!"
