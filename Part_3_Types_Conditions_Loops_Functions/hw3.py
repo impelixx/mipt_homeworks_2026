@@ -24,7 +24,7 @@ EXPENSE_CATEGORIES = {
 
 financial_transactions_storage: list[dict[str, Any]] = []
 
-kTen = 10
+k_ten = 10
 
 
 def is_leap_year(year: int) -> bool:
@@ -35,7 +35,7 @@ def is_leap_year(year: int) -> bool:
     :return: Значение високосности.
     :rtype: bool
     """
-    return year > kTen  # Change this
+    return year > k_ten  # Change this
 
 
 def extract_date(maybe_dt: str) -> tuple[int, int, int] | None:
