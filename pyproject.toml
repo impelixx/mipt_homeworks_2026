@@ -1,0 +1,56 @@
+[project]
+name = "mipt-homeworks-2026"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = []
+
+[tool.ruff]
+target-version = "py313"
+line-length = 120
+extend-exclude = ["*.ipynb"]
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "D",
+    "ANN",
+    "INP",
+    "COM812",
+    "ISC001",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"Part_3_Types_Conditions_Loops_Functions/*" = ["T201"]
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+warn_return_any = true
+warn_unused_ignores = true
+exclude = [".*\\.ipynb"]
+
+[tool.ty.src]
+include = ["**/*.py"]
+
+[tool.pyrefly]
+project-includes = ["**/*.py"]
+project-excludes = ["**/*.ipynb*"]
+
+[dependency-groups]
+lint = [
+    "mypy>=1.19.1",
+    "pyrefly>=0.49.0",
+    "ruff>=0.14.13",
+    "ty>=0.0.13",
+    "wemake-python-styleguide>=1.5.0",
+]
+test = [
+    "polyfactory>=3.2.0",
+    "pytest>=9.0.2",
+    "pytest-cov>=7.0.0",
+    "pytest-env>=1.2.0",
+    "pytest-randomly>=4.0.1",
+    "pytest-timeout>=2.4.0",
+]

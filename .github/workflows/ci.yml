@@ -1,0 +1,149 @@
+name: CI
+
+on:
+  workflow_dispatch:
+    inputs:
+      package_path:
+        description: 'Path to package directory'
+        required: true
+      run_ty:
+        description: 'Run ty type checker'
+        required: false
+        default: false
+        type: boolean
+      run_pyrefly:
+        description: 'Run pyrefly type checker'
+        required: false
+        default: false
+        type: boolean
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  detect-changes:
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    outputs:
+      folders: ${{ steps.detect.outputs.folders }}
+      has_changes: ${{ steps.detect.outputs.has_changes }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed folders
+        id: detect
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            CHANGED_FILES=$(git diff --name-only "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}")
+          else
+            if [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ]; then
+              CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || git ls-files)
+            else
+              CHANGED_FILES=$(git diff --name-only "${{ github.event.before }}" "${{ github.event.after }}" 2>/dev/null || git diff --name-only HEAD~1 HEAD)
+            fi
+          fi
+          
+          PY_FILES=$(echo "$CHANGED_FILES" | grep '\.py$' || true)
+          
+          if [ -z "$PY_FILES" ]; then
+            echo "folders=[]" >> $GITHUB_OUTPUT
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          else
+            FOLDERS=$(echo "$PY_FILES" | grep -vE '^\.' | cut -d'/' -f1 | sort -u | jq -R -s -c 'split("\n") | map(select(length > 0))')
+            echo "folders=$FOLDERS" >> $GITHUB_OUTPUT
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          fi
+
+  lint:
+    needs: detect-changes
+    if: always() && (needs.detect-changes.result == 'skipped' || needs.detect-changes.outputs.has_changes == 'true')
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        folder: ${{ github.event_name == 'workflow_dispatch' && fromJson(format('["{0}"]', github.event.inputs.package_path)) || fromJson(needs.detect-changes.outputs.folders) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+
+      - name: Install dependencies
+        run: uv sync --group lint --group test
+
+      - name: Run ruff check
+        run: uv run ruff check "${{ matrix.folder }}"
+
+      - name: Run wemake-python-styleguide
+        run: uv run flake8 "${{ matrix.folder }}"
+
+  typecheck:
+    needs: detect-changes
+    if: always() && (needs.detect-changes.result == 'skipped' || needs.detect-changes.outputs.has_changes == 'true')
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        folder: ${{ github.event_name == 'workflow_dispatch' && fromJson(format('["{0}"]', github.event.inputs.package_path)) || fromJson(needs.detect-changes.outputs.folders) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+
+      - name: Install dependencies
+        run: uv sync --group lint --group test
+
+      - name: Run mypy
+        run: uv run mypy "${{ matrix.folder }}"
+
+      - name: Run ty (optional)
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.run_ty == 'true' }}
+        run: uv run ty check "${{ matrix.folder }}"
+
+      - name: Run pyrefly (optional)
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.run_pyrefly == 'true' }}
+        run: uv run pyrefly check "${{ matrix.folder }}" --project-excludes "**/*.ipynb"
+
+  test:
+    needs: detect-changes
+    if: always() && (needs.detect-changes.result == 'skipped' || needs.detect-changes.outputs.has_changes == 'true')
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        folder: ${{ github.event_name == 'workflow_dispatch' && fromJson(format('["{0}"]', github.event.inputs.package_path)) || fromJson(needs.detect-changes.outputs.folders) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+
+      - name: Install dependencies
+        run: uv sync --group lint --group test
+
+      - name: Run pytest
+        run: |
+          if [ -d "${{ matrix.folder }}/tests" ]; then
+            uv run pytest "${{ matrix.folder }}/tests" -v
+          else
+            echo "No tests directory found in ${{ matrix.folder }}"
+          fi
