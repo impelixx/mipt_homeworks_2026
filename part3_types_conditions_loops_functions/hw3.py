@@ -5,7 +5,6 @@ NONPOSITIVE_VALUE_MSG = "Value must be grater than zero!"
 INCORRECT_DATE_MSG = "Invalid date!"
 NOT_EXISTS_CATEGORY = "Category not exists!"
 OP_SUCCESS_MSG = "Added"
-NOT_EXISTS_CATEGORY = "Category not exists!"
 
 CMD_INCOME = "income"
 CMD_COST = "cost"
@@ -47,7 +46,7 @@ CostStats = tuple[float, float, dict[str, float]]
 
 def is_leap_year(year: int) -> bool:
     """
-    Определяет сколько дней в году
+    Для заданного года определяет: високосный (True) или невисокосный (False).
 
     :param int year: Проверяемый год
     :return: True, если 366, иначе False.
@@ -61,7 +60,7 @@ def is_leap_year(year: int) -> bool:
 
 def is_valid_date_format(date_string: str) -> bool:
     """
-    Чекер на правильность формата даты
+    Проверяет правильность формата даты
 
     :param str date_string: строка
     :return: True, если формат даты правильный, иначе False.
@@ -80,7 +79,7 @@ def is_valid_date_format(date_string: str) -> bool:
 
 def days_in_month(month: int, year: int) -> int:
     """
-    количество дней в месяце для заданного года
+    Возвращает количество дней в месяце для заданного года
 
     :param int month: Месяц
     :param int year: Год
@@ -96,7 +95,7 @@ def days_in_month(month: int, year: int) -> int:
 
 def is_real_date(day: int, month: int, year: int) -> bool:
     """
-    Чекер на существование даты
+    Проверяет что дата существует
 
     :param int day: День
     :param int month: Месяц
@@ -112,7 +111,7 @@ def is_real_date(day: int, month: int, year: int) -> bool:
 
 def parse_date_numbers(parts: list[str]) -> Date | None:
     """
-    Даты из списка строк
+    Возвращает дату или None если в частях не числа
 
     :param list[str] parts: Список строк
     :return: Кортеж формата (день, месяц, год) или None, если ошибка.
@@ -127,7 +126,7 @@ def parse_date_numbers(parts: list[str]) -> Date | None:
 
 def extract_date(maybe_dt: str) -> tuple[int, int, int] | None:
     """
-    Парсер даты формата DD-MM-YYYY из строки
+    Возвращает кортеж даты из строки формата DD-MM-YYYY
 
     :param str maybe_dt: строка
     :return: typle формата (день, месяц, год) или None, если ошибка
@@ -165,7 +164,7 @@ def is_decimal_number(text: str) -> bool:
 
 def parse_price(maybe_amount: str) -> float | None:
     """
-    Парсер цены
+    Возвращает цену из строки или None, если строка не является правильной ценой
 
     :param str maybe_amount: строка
     :return: Значение цены или None, если неправильно.
@@ -188,7 +187,7 @@ def parse_price(maybe_amount: str) -> float | None:
 
 def check_date(lhs: Date, rhs: Date) -> bool:
     """
-    Проверяет, что даты нормально расположены
+    Проверяет, что даты следуют в правильном порядке: lhs не позже rhs
 
     :param tuple[int, int, int] lhs: Дата lhs в формате (день, месяц, год)
     :param tuple[int, int, int] rhs: Дата rhs в формате (день, месяц, год)
@@ -216,7 +215,7 @@ def money_formater(value: float) -> str:
 
 def income_totals(incomes: list[Income], cur_date: Date) -> IncomeStats:
     """
-    находит суммарный доход и доход за месяц для заданной даты
+    Находит суммарный доход и доход за месяц для заданной даты
 
     :param list[Income] incomes: Список доходов
     :param tuple[int, int, int] cur_date: Дата для статистики
@@ -251,7 +250,7 @@ def income_date(income: Income) -> Date:
 
 def cost_date(cost: Cost) -> Date:
     """
-    хелпер для получения даты из расходов
+    Возвращает  дату из расхода
 
     :param tuple[int, int, int, str, float] cost: Расход
     :return: Дата расхода
@@ -262,7 +261,7 @@ def cost_date(cost: Cost) -> Date:
 
 def cost_totals(costs: list[Cost], cur_date: Date) -> CostStats:
     """
-    Хелпер для нахождения всего что связано c раходами в сумме
+    Помогает c подсчетом статистики по расходам для заданной даты
 
     :param list[Cost] costs: расходы
     :param tuple[int, int, int] cur_date: Дата
@@ -289,7 +288,7 @@ def cost_totals(costs: list[Cost], cur_date: Date) -> CostStats:
 
 def compose_stats(income_stats: IncomeStats, cost_stats: CostStats) -> Stats:
     """
-    Объединяет стату
+    Создает и возвращает единый кортеж co всей статистикой для заданной даты
 
     :param tuple[float, float] income_stats: Кортеж формата (суммарный доход, доход за месяц)
     :param tuple[float, float, dict[str, float]] cost_stats: Кортеж (суммарный расход, расход за месяц, детализация)
@@ -331,7 +330,7 @@ def profit_line(month_diff: float) -> str:
 
 def build_details_lines(categories: dict[str, float]) -> list[str]:
     """
-    Хелпер для детализации по категориям в статистике
+    Возвращает строки c детализацией по категориям расходов
 
     :param dict[str, float] categories: Словарь c категориями и их значениями
     :return: Список строк
@@ -346,7 +345,7 @@ def build_details_lines(categories: dict[str, float]) -> list[str]:
 
 def stats_header(date_text: str, stats: Stats) -> list[str]:
     """
-    Хелпер для заголовка в статистике
+    Возвращает заголовок co статистикой по состоянию на дату
 
     :param str date_text: Дата заданная строкой
     :param tuple[float, float, float, float, dict[str, float]] stats: Стата
@@ -370,7 +369,7 @@ def build_stats_output(
     costs: list[Cost],
 ) -> list[str]:
     """
-    Простенький форматер для статы
+    Форматирует статистику
 
     :param list[str] parts: Части stats
     :param tuple[int, int, int] cur_date: Дата
@@ -414,7 +413,7 @@ def income_handler(amount: float, income_date: str) -> str:
 
 def handle_income(parts: list[str], incomes: list[Income]) -> None:
     """
-    Хендлит income
+    Обрабатывает команду income
 
     :param list[str] parts: Части команды income
     :param list[Income] incomes: Список доходов для добавления нового дохода
@@ -492,7 +491,7 @@ def cost_categories_handler() -> str:
 
 def handle_cost(parts: list[str], costs: list[Cost]) -> None:
     """
-    Хендлит cost
+    Обрабатывает команду cost
 
     :param list[str] parts: Части cost
     :param list[Cost] costs: Список расходов для добавления нового расхода
@@ -522,7 +521,7 @@ def handle_cost(parts: list[str], costs: list[Cost]) -> None:
 
 def handle_stats(parts: list[str], incomes: list[Income], costs: list[Cost]) -> None:
     """
-    Хендлит stats
+    Обрабатывает команду stats
 
     :param list[str] parts: Чacти stats
     :param list[Income] incomes: Список доходов
