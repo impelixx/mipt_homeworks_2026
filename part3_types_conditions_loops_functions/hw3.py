@@ -496,8 +496,12 @@ def handle_cost(parts: list[str], costs: list[Cost]) -> None:
     :param list[str] parts: Части cost
     :param list[Cost] costs: Список расходов для добавления нового расхода
     """
-    if len(parts) != COST_ARGS:
+    if len(parts) != COST_ARGS and parts[1] != "categories":
         print(UNKNOWN_COMMAND_MSG)
+        return
+    print(parts)
+    if parts[1] == "categories":
+        print(cost_categories_handler())
         return
 
     category = parts[1]
