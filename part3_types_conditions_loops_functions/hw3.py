@@ -523,7 +523,7 @@ def handle_cost(parts: list[str], costs: list[Cost]) -> None:
     print(OP_SUCCESS_MSG)
 
 
-def handle_stats(parts: list[str], incomes: list[Income], costs: list[Cost]) -> None:
+def stats_handler(parts: list[str], incomes: list[Income], costs: list[Cost]) -> None:
     """
     Обрабатывает команду stats
 
