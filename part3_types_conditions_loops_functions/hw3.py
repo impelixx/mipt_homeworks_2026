@@ -559,7 +559,7 @@ def process_command(parts: list[str], incomes: list[Income], costs: list[Cost]) 
         handle_cost(parts, costs)
         return
     if command == CMD_STATS:
-        handle_stats(parts, incomes, costs)
+        stats_handler(parts, incomes, costs)
         return
     print(UNKNOWN_COMMAND_MSG)
 
