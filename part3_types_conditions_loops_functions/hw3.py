@@ -28,6 +28,8 @@ financial_transactions_storage: list[dict[str, int | float | str | tuple[int, in
 DATE_LEN = 10
 MONTHS_IN_YEAR = 12
 FEBRUARY = 2
+DATE_SEPARATOR = "-"
+NEGATIVE_SIGN = "-"
 two = 2
 INCOME_ARGS = 3
 MAX_LEN_OF_SPLIT_LINE = 3
@@ -72,11 +74,13 @@ def is_valid_date_format(date_string: str) -> bool:
     """
     if len(date_string) != DATE_LEN:
         return False
-    splited = date_string.split("-")
-    if len(splited) != MAX_LEN_OF_SPLIT_LINE:
+    parts = date_string.split(DATE_SEPARATOR)
+    if len(parts) != MAX_LEN_OF_SPLIT_LINE:
         return False
 
-    first, second, third = splited
+    first, second, third = parts
+    if not first.isdigit() or not second.isdigit() or not third.isdigit():
+        return False
     lengths = (len(first), len(second), len(third))
     return lengths == (2, 2, 4)
 
@@ -139,7 +143,7 @@ def extract_date(maybe_dt: str) -> tuple[int, int, int] | None:
     if not is_valid_date_format(maybe_dt):
         return None
 
-    parts = maybe_dt.split("-")
+    parts = maybe_dt.split(DATE_SEPARATOR)
     parsed_date = parse_date_numbers(parts)
     if parsed_date is None:
         return None
@@ -174,7 +178,7 @@ def parse_price(maybe_amount: str) -> float | None:
     :return: Значение цены или None, если неправильно.
     :rtype: float | None
     """
-    if maybe_amount.startswith("-"):
+    if maybe_amount.startswith(NEGATIVE_SIGN):
         return None
 
     normalized = maybe_amount.replace(",", ".")
@@ -527,7 +531,7 @@ def handle_cost(parts: list[str], costs: list[Cost]) -> None:
     print(OP_SUCCESS_MSG)
 
 
-def stats_handler(parts : str) -> None | str:
+def stats_handler(parts: str) -> None | str:
     """
     Обрабатывает команду stats
 
@@ -544,7 +548,7 @@ def stats_handler(parts : str) -> None | str:
         print(INCORRECT_DATE_MSG)
         return None
 
-    return "\n".join(build_stats_output(parts.split("-"), cur_date, INCOMES, COSTS))
+    return "\n".join(build_stats_output(parts.split(DATE_SEPARATOR), cur_date, INCOMES, COSTS))
 
 
 def process_command(parts: list[str], incomes: list[Income], costs: list[Cost]) -> None:
