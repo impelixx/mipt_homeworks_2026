@@ -6,6 +6,7 @@ INCORRECT_DATE_MSG = "Invalid date!"
 NOT_EXISTS_CATEGORY = "Category not exists!"
 OP_SUCCESS_MSG = "Added"
 
+
 CMD_INCOME = "income"
 CMD_COST = "cost"
 CMD_STATS = "stats"
@@ -42,6 +43,9 @@ THIRTY_DAY_MONTHS = (4, 6, 9, 11)
 Stats = tuple[float, float, float, float, dict[str, float]]
 IncomeStats = tuple[float, float]
 CostStats = tuple[float, float, dict[str, float]]
+
+INCOMES: list[Income] = []
+COSTS: list[Cost] = []
 
 
 def is_leap_year(year: int) -> bool:
@@ -324,8 +328,8 @@ def profit_line(month_diff: float) -> str:
     :rtype: str
     """
     if month_diff >= 0:
-        return f"B этом месяце прибыль составила {month_diff:.2f} рублей"
-    return f"B этом месяце убыток составил {abs(month_diff):.2f} рублей"
+        return f"This month, the profit amounted to {month_diff:.2f} rubles"
+    return f"This month, the loss amounted to {abs(month_diff):.2f} rubles"
 
 
 def build_details_lines(categories: dict[str, float]) -> list[str]:
@@ -336,7 +340,7 @@ def build_details_lines(categories: dict[str, float]) -> list[str]:
     :return: Список строк
     :rtype: list[str]
     """
-    lines = ["", "Детализация (категория: сумма):"]
+    lines = ["", "Details (category: amount):"]
     for index, category_name in enumerate(sorted(categories), start=1):
         value = money_formater(categories[category_name])
         lines.append(f"{index}. {category_name}: {value}")
@@ -354,11 +358,11 @@ def stats_header(date_text: str, stats: Stats) -> list[str]:
     month_diff = stats[2] - stats[3]
     total_capital = stats[0] - stats[1]
     return [
-        f"Ваша статистика по состоянию на {date_text}:",
-        f"Суммарный капитал: {total_capital:.2f} рублей",
+        f"Your statistics as of {date_text}:",
+        f"Your statistics as of: {total_capital:.2f} rubles",
         profit_line(month_diff),
-        f"Доходы: {stats[2]:.2f} рублей",
-        f"Расходы: {stats[3]:.2f} рублей",
+        f"Incomes: {stats[2]:.2f} rubles",
+        f"Expenses: {stats[3]:.2f} rubles",
     ]
 
 
@@ -523,7 +527,7 @@ def handle_cost(parts: list[str], costs: list[Cost]) -> None:
     print(OP_SUCCESS_MSG)
 
 
-def stats_handler(parts: list[str], incomes: list[Income], costs: list[Cost]) -> None:
+def stats_handler(parts : str) -> None | str:
     """
     Обрабатывает команду stats
 
@@ -533,14 +537,14 @@ def stats_handler(parts: list[str], incomes: list[Income], costs: list[Cost]) ->
     """
     if len(parts) != STATS_ARGS:
         print(UNKNOWN_COMMAND_MSG)
-        return
+        return None
 
     cur_date = extract_date(parts[1])
     if cur_date is None:
         print(INCORRECT_DATE_MSG)
-        return
+        return None
 
-    print("\n".join(build_stats_output(parts, cur_date, incomes, costs)))
+    return "\n".join(build_stats_output(parts.split("-"), cur_date, INCOMES, COSTS))
 
 
 def process_command(parts: list[str], incomes: list[Income], costs: list[Cost]) -> None:
@@ -559,7 +563,7 @@ def process_command(parts: list[str], incomes: list[Income], costs: list[Cost]) 
         handle_cost(parts, costs)
         return
     if command == CMD_STATS:
-        stats_handler(parts, incomes, costs)
+        print(stats_handler(parts[1]))
         return
     print(UNKNOWN_COMMAND_MSG)
 
@@ -568,8 +572,6 @@ def main() -> None:
     """
     Сердце программы, считывает команды и хендлит их, пока не будет пустой строки
     """
-    incomes: list[Income] = []
-    costs: list[Cost] = []
 
     while True:
         line = input().strip()
@@ -577,7 +579,7 @@ def main() -> None:
         if not line:
             break
         parts = line.split()
-        process_command(parts, incomes, costs)
+        process_command(parts, INCOMES, COSTS)
 
 
 if __name__ == "__main__":
