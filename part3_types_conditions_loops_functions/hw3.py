@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-from typing import Any
-
 UNKNOWN_COMMAND_MSG = "Unknown command!"
 NONPOSITIVE_VALUE_MSG = "Value must be grater than zero!"
 INCORRECT_DATE_MSG = "Invalid date!"
@@ -9,7 +7,10 @@ NOT_EXISTS_CATEGORY = "Category not exists!"
 OP_SUCCESS_MSG = "Added"
 
 
-EXPENSE_CATEGORIES = {
+CMD_INCOME = "income"
+CMD_COST = "cost"
+CMD_STATS = "stats"
+EXPENSE_CATEGORIES: dict[str, tuple[str, ...]] = {
     "Food": ("Supermarket", "Restaurants", "FastFood", "Coffee", "Delivery"),
     "Transport": ("Taxi", "Public transport", "Gas", "Car service"),
     "Housing": ("Rent", "Utilities", "Repairs", "Furniture"),
@@ -22,7 +23,31 @@ EXPENSE_CATEGORIES = {
 }
 
 
-financial_transactions_storage: list[dict[str, Any]] = []
+financial_transactions_storage: list[dict[str, int | float | str | tuple[int, int, int]]] = []
+
+DATE_LEN = 10
+MONTHS_IN_YEAR = 12
+FEBRUARY = 2
+DATE_SEPARATOR = "-"
+NEGATIVE_SIGN = "-"
+two = 2
+INCOME_ARGS = 3
+MAX_LEN_OF_SPLIT_LINE = 3
+COST_ARGS = 4
+STATS_ARGS = 2
+
+Income = tuple[int, int, int, float]
+Cost = tuple[int, int, int, str, float]
+Date = tuple[int, int, int]
+
+THIRTY_DAY_MONTHS = (4, 6, 9, 11)
+
+Stats = tuple[float, float, float, float, dict[str, float]]
+IncomeStats = tuple[float, float]
+CostStats = tuple[float, float, dict[str, float]]
+
+INCOMES: list[Income] = []
+COSTS: list[Cost] = []
 
 
 def is_leap_year(year: int) -> bool:
@@ -30,42 +55,535 @@ def is_leap_year(year: int) -> bool:
     Для заданного года определяет: високосный (True) или невисокосный (False).
 
     :param int year: Проверяемый год
-    :return: Значение високосности.
+    :return: True, если 366, иначе False.
     :rtype: bool
     """
-    return bool(year)  # Change this
+    by_four = year % 4 == 0
+    by_hundred = year % 100 == 0
+    by_four_hundred = year % 400 == 0
+    return by_four and (not by_hundred or by_four_hundred)
+
+
+def is_valid_date_format(date_string: str) -> bool:
+    """
+    Проверяет правильность формата даты
+
+    :param str date_string: строка
+    :return: True, если формат даты правильный, иначе False.
+    :rtype: bool
+    """
+    if len(date_string) != DATE_LEN:
+        return False
+    parts = date_string.split(DATE_SEPARATOR)
+    if len(parts) != MAX_LEN_OF_SPLIT_LINE:
+        return False
+
+    first, second, third = parts
+    if not first.isdigit() or not second.isdigit() or not third.isdigit():
+        return False
+    lengths = (len(first), len(second), len(third))
+    return lengths == (2, 2, 4)
+
+
+def days_in_month(month: int, year: int) -> int:
+    """
+    Возвращает количество дней в месяце для заданного года
+
+    :param int month: Месяц
+    :param int year: Год
+    :return: Количество дней в месяце для заданного года
+    :rtype: int
+    """
+    if month in THIRTY_DAY_MONTHS:
+        return 30
+    if month == FEBRUARY:
+        return 29 if is_leap_year(year) else 28
+    return 31
+
+
+def is_real_date(day: int, month: int, year: int) -> bool:
+    """
+    Проверяет что дата существует
+
+    :param int day: День
+    :param int month: Месяц
+    :param int year: Год
+    :return: True, если дата существует, иначе False.
+    :rtype: bool
+    """
+    month_is_valid = 1 <= month <= MONTHS_IN_YEAR
+    if not month_is_valid:
+        return False
+    return 1 <= day <= days_in_month(month, year)
+
+
+def parse_date_numbers(parts: list[str]) -> Date | None:
+    """
+    Возвращает дату или None если в частях не числа
+
+    :param list[str] parts: Список строк
+    :return: Кортеж формата (день, месяц, год) или None, если ошибка.
+    :rtype: tuple[int, int, int] | None
+    """
+    day_text, month_text, year_text = parts
+    if not day_text.isdigit() or not month_text.isdigit() or not year_text.isdigit():
+        return None
+
+    return int(day_text), int(month_text), int(year_text)
 
 
 def extract_date(maybe_dt: str) -> tuple[int, int, int] | None:
     """
-    Парсит дату формата DD-MM-YYYY из строки.
+    Возвращает кортеж даты из строки формата DD-MM-YYYY
 
-    :param str maybe_dt: Проверяемая строка
-    :return: typle формата (день, месяц, год) или None, если дата неправильная.
+    :param str maybe_dt: строка
+    :return: typle формата (день, месяц, год) или None, если ошибка
     :rtype: tuple[int, int, int] | None
     """
+    if not is_valid_date_format(maybe_dt):
+        return None
+
+    parts = maybe_dt.split(DATE_SEPARATOR)
+    parsed_date = parse_date_numbers(parts)
+    if parsed_date is None:
+        return None
+
+    if not is_real_date(parsed_date[0], parsed_date[1], parsed_date[2]):
+        return None
+    return parsed_date
+
+
+def is_decimal_number(text: str) -> bool:
+    """
+    Чекер на десятичное число
+
+    :param str text: строка
+    :return: True, если строка - десятичное число, иначе False.
+    :rtype: bool
+    """
+    if "." not in text:
+        return text.isdigit()
+
+    left, right = text.split(".", 1)
+    has_parts = bool(left) and bool(right)
+    contains_only_digits = left.isdigit() and right.isdigit()
+    return has_parts and contains_only_digits
+
+
+def parse_price(maybe_amount: str) -> float | None:
+    """
+    Возвращает цену из строки или None, если строка не является правильной ценой
+
+    :param str maybe_amount: строка
+    :return: Значение цены или None, если неправильно.
+    :rtype: float | None
+    """
+    if maybe_amount.startswith(NEGATIVE_SIGN):
+        return None
+
+    normalized = maybe_amount.replace(",", ".")
+    normalized = normalized.removeprefix("+")
+    if not normalized or normalized.count(".") > 1:
+        return None
+
+    if not is_decimal_number(normalized):
+        return None
+
+    amount = float(normalized)
+    return amount if amount > 0 else None
+
+
+def check_date(lhs: Date, rhs: Date) -> bool:
+    """
+    Проверяет, что даты следуют в правильном порядке: lhs не позже rhs
+
+    :param tuple[int, int, int] lhs: Дата lhs в формате (день, месяц, год)
+    :param tuple[int, int, int] rhs: Дата rhs в формате (день, месяц, год)
+    :return: True, если lhs не позже rhs, иначе False.
+    :rtype: bool
+    """
+    fst = (lhs[2], lhs[1], lhs[0])
+    snd = (rhs[2], rhs[1], rhs[0])
+    return fst <= snd
+
+
+def money_formater(value: float) -> str:
+    """
+    Форматирует сумму денег в строку
+
+    :param float value: Сумма денег
+    :return: Отформатированная строка.
+    :rtype: str
+    """
+    if value.is_integer():
+        return str(int(value))
+    formatted = f"{value:.2f}"
+    return formatted.rstrip("0").rstrip(".")
+
+
+def income_totals(incomes: list[Income], cur_date: Date) -> IncomeStats:
+    """
+    Находит суммарный доход и доход за месяц для заданной даты
+
+    :param list[Income] incomes: Список доходов
+    :param tuple[int, int, int] cur_date: Дата для статистики
+    :return: Кортеж формата (суммарный доход, доход за месяц)
+    :rtype: tuple[float, float]
+    """
+    query_month_year = (cur_date[1], cur_date[2])
+    total_income = float(0)
+    month_income = float(0)
+
+    for income in incomes:
+        if not check_date(income_date(income), cur_date):
+            continue
+        amount = income[3]
+        total_income += amount
+        if (income[1], income[2]) == query_month_year:
+            month_income += amount
+
+    return total_income, month_income
+
+
+def income_date(income: Income) -> Date:
+    """
+    Возвращает дату из дохода.
+
+    :param tuple[int, int, int, str, float] income: Доход
+    :return: Дата дохода
+    :rtype: tuple[int, int, int]
+    """
+    return income[0], income[1], income[2]
+
+
+def cost_date(cost: Cost) -> Date:
+    """
+    Возвращает  дату из расхода
+
+    :param tuple[int, int, int, str, float] cost: Расход
+    :return: Дата расхода
+    :rtype: tuple[int, int, int]
+    """
+    return cost[0], cost[1], cost[2]
+
+
+def cost_totals(costs: list[Cost], cur_date: Date) -> CostStats:
+    """
+    Помогает c подсчетом статистики по расходам для заданной даты
+
+    :param list[Cost] costs: расходы
+    :param tuple[int, int, int] cur_date: Дата
+    :return: Кортеж формата (суммарный расход, расход за месяц, детализация по категориям)
+    :rtype: tuple[float, float, dict[str, float]]
+    """
+    month_and_total_cost = [float(0), float(0)]
+    categories: dict[str, float] = {}
+
+    for cost in costs:
+        if not check_date(cost_date(cost), cur_date):
+            continue
+        month_and_total_cost[0] += cost[4]
+        current_cost_date = (cost[1], cost[2])
+        if current_cost_date != (cur_date[1], cur_date[2]):
+            continue
+        month_and_total_cost[1] += cost[4]
+        cat = cost[3]
+        categories.setdefault(cat, float(0))
+        categories[cat] += cost[4]
+
+    return month_and_total_cost[0], month_and_total_cost[1], categories
+
+
+def compose_stats(income_stats: IncomeStats, cost_stats: CostStats) -> Stats:
+    """
+    Создает и возвращает единый кортеж co всей статистикой для заданной даты
+
+    :param tuple[float, float] income_stats: Кортеж формата (суммарный доход, доход за месяц)
+    :param tuple[float, float, dict[str, float]] cost_stats: Кортеж (суммарный расход, расход за месяц, детализация)
+    :return: Кортеж (суммарный доход, суммарный расход, доход за месяц, расход за месяц, детализация)
+    :rtype: tuple[float, float, float, float, dict[str, float]]
+    """
+    income_total, income_month = income_stats
+    cost_total, cost_month, categories = cost_stats
+    return income_total, cost_total, income_month, cost_month, categories
+
+
+def collect_stats(incomes: list[Income], costs: list[Cost], cur_date: Date) -> Stats:
+    """
+    Хелпер для статы на указанную дату
+
+    :param list[Income] incomes: доходы
+    :param list[Cost] costs: расходы
+    :param tuple[int, int, int] cur_date: Дата
+    :return: Стата за дату
+    :rtype: tuple[float, float, float, float, dict[str, float]]
+    """
+    income_stats = income_totals(incomes, cur_date)
+    cost_stats = cost_totals(costs, cur_date)
+    return compose_stats(income_stats, cost_stats)
+
+
+def profit_line(month_diff: float) -> str:
+    """
+    Хелпер для строки c прибылью/убытком
+
+    :param float month_diff: разница между плюсом и минусом
+    :return: Инфа o разнице
+    :rtype: str
+    """
+    if month_diff >= 0:
+        return f"This month, the profit amounted to {month_diff:.2f} rubles"
+    return f"This month, the loss amounted to {abs(month_diff):.2f} rubles"
+
+
+def build_details_lines(categories: dict[str, float]) -> list[str]:
+    """
+    Возвращает строки c детализацией по категориям расходов
+
+    :param dict[str, float] categories: Словарь c категориями и их значениями
+    :return: Список строк
+    :rtype: list[str]
+    """
+    lines = ["", "Details (category: amount):"]
+    for index, category_name in enumerate(sorted(categories), start=1):
+        value = money_formater(categories[category_name])
+        lines.append(f"{index}. {category_name}: {value}")
+    return lines
+
+
+def stats_header(date_text: str, stats: Stats) -> list[str]:
+    """
+    Возвращает заголовок co статистикой по состоянию на дату
+
+    :param str date_text: Дата заданная строкой
+    :param tuple[float, float, float, float, dict[str, float]] stats: Стата
+    :return: Список строк для заголовка статы
+    """
+    month_diff = stats[2] - stats[3]
+    total_capital = stats[0] - stats[1]
+    return [
+        f"Your statistics as of {date_text}:",
+        f"Your statistics as of: {total_capital:.2f} rubles",
+        profit_line(month_diff),
+        f"Incomes: {stats[2]:.2f} rubles",
+        f"Expenses: {stats[3]:.2f} rubles",
+    ]
+
+
+def build_stats_output(
+    parts: list[str],
+    cur_date: Date,
+    incomes: list[Income],
+    costs: list[Cost],
+) -> list[str]:
+    """
+    Форматирует статистику
+
+    :param list[str] parts: Части stats
+    :param tuple[int, int, int] cur_date: Дата
+    :param list[Income] incomes: доходы
+    :param list[Cost] costs: расходы
+    :return: Список на вывод
+    :rtype: list[str]
+    """
+    stats = collect_stats(incomes, costs, cur_date)
+    lines = stats_header(parts[1], stats)
+    lines.extend(build_details_lines(stats[4]))
+    return lines
 
 
 def income_handler(amount: float, income_date: str) -> str:
-    financial_transactions_storage.append({"amount": amount, "date": income_date})
+    """
+    Обработчик для добавления дохода
+
+    :param float amount: Сумма дохода
+    :param str income_date: Дата дохода в формате DD-MM-YYYY
+    :return: Сообщение o результате операции
+    :rtype: str
+    """
+    if amount <= 0:
+        financial_transactions_storage.append({})
+        return NONPOSITIVE_VALUE_MSG
+
+    date_tuple = extract_date(income_date)
+    if date_tuple is None:
+        financial_transactions_storage.append({})
+        return INCORRECT_DATE_MSG
+
+    financial_transactions_storage.append(
+        {
+            "amount": amount,
+            "date": date_tuple,
+        }
+    )
     return OP_SUCCESS_MSG
 
 
+def handle_income(parts: list[str], incomes: list[Income]) -> None:
+    """
+    Обрабатывает команду income
+
+    :param list[str] parts: Части команды income
+    :param list[Income] incomes: Список доходов для добавления нового дохода
+    """
+    if len(parts) != INCOME_ARGS:
+        print(UNKNOWN_COMMAND_MSG)
+        return
+
+    amount = parse_price(parts[1])
+    if amount is None:
+        print(NONPOSITIVE_VALUE_MSG)
+        return
+
+    date_tuple = extract_date(parts[2])
+    if date_tuple is None:
+        print(INCORRECT_DATE_MSG)
+        return
+
+    day, month, year = date_tuple
+    incomes.append((day, month, year, amount))
+    print(OP_SUCCESS_MSG)
+
+
 def cost_handler(category_name: str, amount: float, income_date: str) -> str:
-    financial_transactions_storage.append({"category": category_name, "amount": amount, "date": income_date})
+    """
+    Обработчик для добавления расхода
+
+    :param str category_name: Категория расхода в формате "Category::Subcategory"
+    :param float amount: Сумма расхода
+    :param str income_date: Дата расхода в формате DD-MM-YYYY
+    :return: Сообщение o результате операции
+    :rtype: str
+    """
+    if amount <= 0:
+        financial_transactions_storage.append({})
+        return NONPOSITIVE_VALUE_MSG
+
+    parts = category_name.split("::")
+    if len(parts) != two:
+        financial_transactions_storage.append({})
+        return NOT_EXISTS_CATEGORY
+
+    common_cat, specific_cat = parts
+    if common_cat not in EXPENSE_CATEGORIES or specific_cat not in EXPENSE_CATEGORIES[common_cat]:
+        financial_transactions_storage.append({})
+        return NOT_EXISTS_CATEGORY
+
+    parsed_date = extract_date(income_date)
+    if parsed_date is None:
+        financial_transactions_storage.append({})
+        return INCORRECT_DATE_MSG
+
+    financial_transactions_storage.append(
+        {
+            "category": category_name,
+            "amount": amount,
+            "date": parsed_date,
+        }
+    )
     return OP_SUCCESS_MSG
 
 
 def cost_categories_handler() -> str:
-    return "\n".join({})
+    """
+    Возвращает информацию o доступных категориях расходов
+
+    :return: Отформатированная строка c категориями
+    :rtype: str
+    """
+    lines: list[str] = []
+    for category, subcats in EXPENSE_CATEGORIES.items():
+        lines.extend(f"{category}::{subcat}" for subcat in subcats)
+    return "\n".join(lines)
 
 
-def stats_handler(report_date: str) -> str:
-    return f"Statistic for {report_date}"
+def handle_cost(parts: list[str], costs: list[Cost]) -> None:
+    """
+    Обрабатывает команду cost
+
+    :param list[str] parts: Части cost
+    :param list[Cost] costs: Список расходов для добавления нового расхода
+    """
+    if len(parts) != COST_ARGS and parts[1] != "categories":
+        print(UNKNOWN_COMMAND_MSG)
+        return
+    print(parts)
+    if parts[1] == "categories":
+        print(cost_categories_handler())
+        return
+
+    category = parts[1]
+    if not category or "." in category or "," in category:
+        print(UNKNOWN_COMMAND_MSG)
+        return
+
+    amount = parse_price(parts[2])
+    if amount is None:
+        print(NONPOSITIVE_VALUE_MSG)
+        return
+
+    date_tuple = extract_date(parts[3])
+    if date_tuple is None:
+        print(INCORRECT_DATE_MSG)
+        return
+
+    costs.append((*date_tuple, category, amount))
+    print(OP_SUCCESS_MSG)
+
+
+def stats_handler(parts: str) -> None | str:
+    """
+    Обрабатывает команду stats
+
+    :param list[str] parts: Чacти stats
+    :param list[Income] incomes: Список доходов
+    :param list[Cost] costs: Список расходов
+    """
+    if len(parts) != STATS_ARGS:
+        print(UNKNOWN_COMMAND_MSG)
+        return None
+
+    cur_date = extract_date(parts[1])
+    if cur_date is None:
+        print(INCORRECT_DATE_MSG)
+        return None
+
+    return "\n".join(build_stats_output(parts.split(DATE_SEPARATOR), cur_date, INCOMES, COSTS))
+
+
+def process_command(parts: list[str], incomes: list[Income], costs: list[Cost]) -> None:
+    """
+    Раскидывает команды по соответствующим обработчикам.
+
+    :param list[str] parts: Части команды
+    :param list[Income] incomes: Список доходов
+    :param list[Cost] costs: Список расходов
+    """
+    command = parts[0]
+    if command == CMD_INCOME:
+        handle_income(parts, incomes)
+        return
+    if command == CMD_COST:
+        handle_cost(parts, costs)
+        return
+    if command == CMD_STATS:
+        print(stats_handler(parts[1]))
+        return
+    print(UNKNOWN_COMMAND_MSG)
 
 
 def main() -> None:
-    """Ваш код здесь"""
+    """
+    Сердце программы, считывает команды и хендлит их, пока не будет пустой строки
+    """
+
+    while True:
+        line = input().strip()
+
+        if not line:
+            break
+        parts = line.split()
+        process_command(parts, INCOMES, COSTS)
 
 
 if __name__ == "__main__":
