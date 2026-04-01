@@ -34,7 +34,7 @@ two = 2
 INCOME_ARGS = 3
 MAX_LEN_OF_SPLIT_LINE = 3
 COST_ARGS = 4
-STATS_ARGS = 2
+STATS_ARGS = 1
 
 Income = tuple[int, int, int, float]
 Cost = tuple[int, int, int, str, float]
@@ -507,7 +507,6 @@ def handle_cost(parts: list[str], costs: list[Cost]) -> None:
     if len(parts) != COST_ARGS and parts[1] != "categories":
         print(UNKNOWN_COMMAND_MSG)
         return
-    print(parts)
     if parts[1] == "categories":
         print(cost_categories_handler())
         return
@@ -539,11 +538,7 @@ def stats_handler(parts: str) -> None | str:
     :param list[Income] incomes: Список доходов
     :param list[Cost] costs: Список расходов
     """
-    if len(parts) != STATS_ARGS:
-        print(UNKNOWN_COMMAND_MSG)
-        return None
-
-    cur_date = extract_date(parts[1])
+    cur_date = extract_date(parts)
     if cur_date is None:
         print(INCORRECT_DATE_MSG)
         return None
