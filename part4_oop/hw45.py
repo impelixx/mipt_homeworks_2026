@@ -28,7 +28,6 @@ class DictStorage(Storage[K, V]):
         self._data.clear()
 
 
-
 @dataclass
 class BasePolicy(Policy[K]):
     capacity: int = 5
