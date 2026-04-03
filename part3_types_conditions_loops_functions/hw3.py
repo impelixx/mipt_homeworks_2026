@@ -34,7 +34,7 @@ two = 2
 INCOME_ARGS = 3
 MAX_LEN_OF_SPLIT_LINE = 3
 COST_ARGS = 4
-STATS_ARGS = 1
+STATS_ARGS = 2
 
 Income = tuple[int, int, int, float]
 Cost = tuple[int, int, int, str, float]
