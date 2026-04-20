@@ -1,5 +1,6 @@
 import json
 from datetime import UTC, datetime
+from functools import wraps
 from typing import Any, ParamSpec, Protocol, TypeVar
 from urllib.request import urlopen
 
@@ -21,8 +22,8 @@ class CallableWithMeta(Protocol[P, R_co]):
 
 
 class BreakerError(Exception):
-    def __init__(self, exce: str, func_name: str | None = None, block_time: datetime | None = None):
-        super().__init__(exce)
+    def __init__(self, exc: str = TOO_MUCH, func_name: str | None = None, block_time: datetime | None = None):
+        super().__init__(exc)
         if func_name is not None:
             self.func_name = func_name
         if block_time is not None:
@@ -54,6 +55,7 @@ class CircuitBreaker:
     def __call__(self, func: CallableWithMeta[P, R_co]) -> CallableWithMeta[P, R_co]:
         self._func_name = f"{func.__module__}.{func.__name__}"
 
+        @wraps(func)
         def wrapper(*args: P.args, **kwargs: P.kwargs) -> R_co:
             if self._block_time is not None:
                 if (datetime.now(UTC) - self._block_time).total_seconds() < self._time_to_rec:
@@ -62,9 +64,6 @@ class CircuitBreaker:
                 self._cnt = 0
             return self._handle_func(func, *args, **kwargs)
 
-        wrapper.__name__ = func.__name__
-        wrapper.__module__ = func.__module__
-        wrapper.__doc__ = func.__doc__
         return wrapper
 
     def _handle_func(self, func: CallableWithMeta[P, R_co], *args: P.args, **kwargs: P.kwargs) -> R_co:
@@ -76,8 +75,6 @@ class CircuitBreaker:
             if self._cnt >= self._critical_count:
                 self._block_time = datetime.now(UTC)
                 raise BreakerError(TOO_MUCH, self._func_name, self._block_time) from err
-            raise
-        except Exception:
             raise
         self._cnt = 0
         self._block_time = None
