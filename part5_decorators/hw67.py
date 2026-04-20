@@ -28,6 +28,8 @@ class BreakerError(Exception):
             self.func_name = func_name
         if block_time is not None:
             self.block_time = block_time
+        else:
+            self.block_time = datetime.now(UTC)
 
 
 class CircuitBreaker:
