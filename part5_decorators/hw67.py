@@ -26,10 +26,10 @@ class BreakerError(Exception):
         super().__init__(exc)
         if func_name is not None:
             self.func_name = func_name
-        if block_time is not None:
-            self.block_time = block_time
-        else:
+        if block_time is None:
             self.block_time = datetime.now(UTC)
+        else:
+            self.block_time = block_time
 
 
 class CircuitBreaker:
